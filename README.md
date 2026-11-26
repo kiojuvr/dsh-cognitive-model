@@ -1,369 +1,190 @@
 # dsh-cognitive-model
 
-The cognitive model and the world model as **one graph**, for DSH agents — and
-the recall block a new session starts from.
+A workspace-scoped graph that carries **the objective, the current position, and the work still open** across sessions — and the recall block a session starts from. The agent writes it with evidence; the next session reads it before it starts working. The same graph is what the Cognition tab draws.
 
-Nodes and typed edges represent objectives, tasks, claims and world entities.
-Readers can follow relationships in the graph or infer ownership and location
-through `part_of`.
+## Why this exists
 
-State is not stored as truth. The durable document holds an append-only **event
-log**; the graph is projected from it on every read. That is what makes a
-replacement, a withdrawal, and a valid-time window apply before anything is
-answered — and what makes an unresolved conflict visible instead of silently
-resolved.
+A long project outlives a session — often many of them. The next session starts without the objective, without the decisions already made, and without the work still open. It re-derives what was settled, repeats a mistake, or optimizes the task in front of it until the real goal is out of view.
+
+The model keeps the material for the next decision outside the conversation:
+
+- **Structure** — objective → component → task. What the work is for, and how it decomposes.
+- **The epistemic record** — decision, constraint, risk, fact, preference. What has been settled, and what may be believed.
+- **The world model** — entity, `part_of` / `owned_by` / `located_in`. What the work is made of, and who owns it.
+- **Experience** — prediction errors and the conditional rules distilled from them.
+
+The aim is not a larger memory; it is a next decision that still points at the objective.
+
+A finding is not a node: it is a deferral queue item in `@kioju/dsh-cognitive-findings`, pointing back at the node it belongs to.
+
+## What you get
+
+- The next session starts from the objective, not from zero.
+- Decisions, constraints, and verified facts survive the session — with the evidence that supports them. A guess is refused.
+- The agent sees objective → path → now → remaining on every step, not only at the start.
+- The same material is visible to you in the Cognition tab (install the dashboard).
+- The graph never blocks work: a refused write is reported, and the work goes on.
+
+It pays off when the work spans sessions and someone — you or the agent — would otherwise reconstruct the objective. For a single short task, the graph is overhead; install it when the work is long enough that the next session would start from zero.
 
 ## What it is not
 
-- **Not a gate.** No tool blocks work, and the graph never refuses to let you
-  continue. A refused write is reported and the work goes on.
-- **Not a drift detector.** The bird's-eye check does not judge whether the work
-  has drifted. It asks the reader to re-check when a recorded prediction error
-  puts the objective, an acceptance item, or a priority in question, and
-  "continue" is a normal answer.
-- **Not a graph database.** No queries beyond a bounded traversal and one
-  boolean filter algebra, no indexes, no background maintenance. The document is
-  one JSON file beside the workspace.
-- **Not a substitute for evidence.** A write needs evidence: a file you read, a
-  command you ran, a url, or the human's own words. A guess is refused, and
-  `agent_inference` is never durable.
-- **Not an approval system.** DSH owns approval. There is no second authority
-  here.
-- **Not a second history of the conversation.** It records structure you
-  deliberately write, not what happened in the session.
+- **Not a gate.** No tool blocks work, and the graph never refuses to let you continue. A refused write is reported and the work goes on.
+- **Not a drift detector.** The bird's-eye check does not judge whether the work has drifted. It asks the reader to re-check when a recorded prediction error puts the objective, an acceptance item, or a priority in question; "continue" is a normal answer.
+- **Not a graph database.** No queries beyond a bounded traversal and one boolean filter algebra, no indexes, no background maintenance. The document is one JSON file beside the workspace.
+- **Not a substitute for evidence.** A write needs evidence: a file you read, a command you ran, a url, or the human's own words. A guess is refused, and `agent_inference` is never durable.
+- **Not an approval system.** DSH owns approval. There is no second authority here.
+- **Not a second history of the conversation.** It records structure you deliberately write, not what happened in the session.
 
-## The graph
+## What happens after install
 
-Three vocabularies share one store, because "what is the work for", "what may be
-believed about it", and "what is it made of" are asked together.
+- Four tools: `graph_write`, `graph_retract`, `graph_query`, `graph_history`.
+- A standing instruction that says what must survive the session and what must not be recorded.
+- A **recall block** assembled on every prompt: objective, current path, now, remaining, map, constraints, decisions, linked facts, experience rules, and — when a recorded error asks for it — one non-binding whole-picture check.
+- One append-only event log per workspace: `.dsh/cognitive-model/graph.json`. State is projected, never stored.
 
-**Nodes** — `objective` / `component` / `task` / `decision` (the
-structure), `constraint` / `risk` / `fact` / `preference` (the epistemic record),
-`heuristic` (a conditional rule distilled from prediction errors), and `entity`
-(the world). A finding is not a node: it is a deferral queue item in the
-findings ledger, whose `node` field points back at the objective or component
-it belongs to.
+## Install
 
-A constraint is a bound on the work; a risk is an unresolved danger; a fact is
-a claim about the repository, stored in `value`; a preference is how the human
-wants things done. These are nodes, not attributes, so readers can query them
-and the recall block can group them without a second store.
-
-A **prediction error** — an expectation that differed from what happened, better
-or worse — is *not* a node: it has no place in the structure and no edge to
-anything. It is an event (`record_error`), appended once and never superseded; a
-correction is a newer record, so the expectation that differed stays readable.
-Its `direction` says which way the outcome differed, and its `revisit` field is
-the impact, separate from the kind: what, if anything, the error puts in
-question.
-
-A **heuristic** is a node: a conditional, revisable rule distilled from one or
-more errors. It carries `direction` (the rule's valence), `conditions` (when it
-applies), and `errorIds` (the source errors). It is linked with a `node` edge to
-the objective or component it serves. It is written deliberately — the writer
-decides that recurrence, impact, or explanatory value justifies a rule — not
-generated automatically.
-
-**Edges** — `serves` / `requires` / `verifies` / `node` join the cognitive side;
-`part_of` / `owned_by` / `located_in` join the world side.
-
-| edge | functional | from → to | meaning |
-|---|---|---|---|
-| `serves` | yes | objective / component / task → objective / component | what a task or component is for; an objective serves only its parent objective |
-| `requires` | no | component / task / decision → component | a dependency on a component |
-| `verifies` | no | component → component | which component checks which |
-| `node` | yes | decision / fact / risk / constraint / preference / heuristic → objective / component | the node this record belongs to |
-| `part_of` | yes | entity → entity | the structural parent |
-| `owned_by` | yes | entity → entity | who owns the entity |
-| `located_in` | yes | entity → entity | where the entity is |
-
-The vocabulary is closed, and the write path checks it: an edge between the
-wrong kinds is refused with `invalid_edge_endpoint` instead of being stored and
-silently ignored by the tree.
-
-A **functional** relation has one active target per `(from, type)`: writing a
-second target replaces the first, and the first stays in `graph_history`. A
-non-functional relation accumulates.
-
-### The two inferences
-
-`graph_query` with `infer` answers the questions the graph exists for:
-
-- **owner** — a direct `owned_by` wins; otherwise the owner is inherited from
-  the nearest ancestor on the `part_of` chain that has one, and the result says
-  which of the two it used.
-- **location** — a direct `located_in` and an inherited one are both candidates.
-  When they name different places the answer is a **conflict with the
-  candidates**, not the newer one.
-
-`part_of` is a strict partial order: a node is not part of itself. Chains are
-cycle-safe and report the cycle rather than following it forever.
-
-## Projection rules
-
-The order matters, and it is the order the code follows:
-
-1. collect the events
-2. partition by projection key
-3. resolve supersession — an explicit replacement beats recency
-4. apply invalidation — a withdrawn event never becomes current
-5. apply valid time — an event may not cover this instant
-6. build the view
-
-When two events are still active on one key and neither supersedes the other,
-the projection records a **conflict** and leaves that key out of the view. A
-conflict is returned with every `graph_query` result.
-
-## Tools
-
-### `graph_write`
-
-| argument | required | meaning |
-|---|---|---|
-| `nodes` | one of | `{ id, type, label, value?, direction?, conditions?, errorIds?, paths?, docs?, milestones? }`; `direction` / `conditions` / `errorIds` are heuristic-only |
-| `edges` | one of | `{ from, type, to }` |
-| `errors` | one of | `{ kind, direction, subject, predicted, observed, lesson?, factId?, revisit? }` |
-| `evidence` | effectively | a file, a command, a url, or the human's words |
-| `source` | no | derived from the evidence when omitted |
-| `scope` | no | defaults to `repo` |
-| `validFrom` / `validTo` | no | when the claim starts and stops holding |
-
-Both endpoints of an edge must exist — in this call or an earlier one. The whole
-call is validated before anything is appended: a batch that is half applied is a
-graph nobody can reason about. A node or edge named twice in one call is folded
-into one event (the later entry wins), so a batch cannot leave two active events
-on one projection key — the projection would report that as an unresolvable
-conflict and hide the node.
-
-Writing the same claim with the same source and evidence again is a no-op. A
-write whose source or evidence changed supersedes the earlier event, so a claim
-first recorded from a note can later be verified by a command without changing
-its text; the earlier record stays in `graph_history`.
-
-A prediction error is stricter than a node: its evidence must include a command,
-a file, or a url. A note alone is a report, not an observation — "it differed"
-is only worth recalling if something other than the reporter showed it. The same
-record written twice is reported as a duplicate and not appended again. A
-heuristic is stricter too: it needs `direction`, `conditions`, and one to ten
-active `errorIds` (record the errors first; their ids are returned by the write).
-A heuristic distilled by the model also needs a command, file, or url; a human
-may state one from a note.
-
-`direction` is `better` or `worse`: the outcome beat the expectation (it worked,
-was faster, or was smaller) or fell short. Both are recorded and recalled; a
-positive error can widen a boundary or raise confidence, a negative one can
-narrow it or add a check.
-
-`revisit` is the impact, not another kind: set it only when the error puts the
-current objective (`objective`), an acceptance item (`acceptance`), or a
-priority (`priority`) in question. A `scope` or `estimate` miss that changes
-nothing about the objective is a calibration record and leaves it unset; a
-`belief` that overturns an assumption or an `outcome` that shows an acceptance
-item cannot be met — or is already met — may set it.
-
-### `graph_retract`
-
-`nodes?`, `edges?`, `reason` (required), `evidence`. Retracting a node also
-withdraws the edges that point at it, so no relation is left dangling. Nothing is
-erased: the retraction supersedes the event and both stay in history.
-
-### `graph_query`
-
-`start?`, `via?`, `direction?`, `depth?`, `predicate?`, `infer?`, `errors?`,
-`limit?`.
-
-With `errors: true` it lists the recorded prediction errors, newest first,
-instead of graph nodes.
-
-The predicate algebra is the whole query language:
+In DSH, open **Plugins**, choose **Add plugin**, and enter `@kioju/dsh-cognitive-model`. From a shell the same install is:
 
 ```
-{ type: 'owner',      owner,    mode? }
-{ type: 'part_of',    parent,   mode? }
-{ type: 'located_in', place,    mode? }
-{ type: 'node_type',  nodeType, mode? }
-{ type: 'and' | 'or', of: [ … ] }
-{ type: 'not',        of: { … } }
-{ type: 'true' } | { type: 'false' }
+dsh plugin add @kioju/dsh-cognitive-model
 ```
 
-`mode` is `include` (default) or `exclude`. Use `and`, `or`, and `not` to
-combine predicates.
+The plugin is enabled when it is added; switch it on in **Plugins** if it is not.
 
-Traversal returns every `via` edge between reached nodes (the induced
-subgraph), not only the BFS tree, and reports a cycle only when the walk
-actually closes one — an undirected walk back over the edge it came by is not a
-cycle.
+The package is its own bundle (`dsh.bundle.patch`), and `@kioju/dsh-cognitive-core` arrives as an ordinary dependency — no checkout, no build step, nothing to place beside the package.
 
-### `graph_history`
+The **Cognition** tab that draws this graph is `@kioju/dsh-cognitive-dashboard`. Install it too to see what the agent sees:
 
-`node?`, `edge?`, `limit?`. Every write, replacement, and retraction behind one
-target, newest first, each with its source, its evidence, and whether it is still
-current.
+```
+dsh plugin add @kioju/dsh-cognitive-dashboard
+```
 
-## The recall block
+`@kioju/dsh-cognitive-findings` is optional; it adds the deferral queue for out-of-scope findings. Each plugin is independent.
 
-The plugin provides a short instruction and assembles a bounded recall block
-from the projection on each step. Here is an example for a documentation site:
+## First five minutes
+
+The graph starts empty. Until something is written, the recall block is empty and the Cognition tab says **No objective is recorded yet**. That is the designed start, not a failure: the plugin does not infer an objective from the conversation.
+
+Record the objective once, in a normal session:
+
+> Read this repository's README and package.json, then record its purpose in the cognitive graph: the objective as `objective`, the current work as `task/current`, and the other open work as `task/<key>`. Use the files you read as evidence, and tell me in one line what you wrote.
+
+After the write, the next prompt carries a block like this (trimmed):
 
 ```
 Working memory for this workspace, projected from the event log — build on it instead of re-deriving it:
-Objective: Publish a searchable documentation site [tasks: 1] (reported)
+Objective: Publish a searchable documentation site — offline search is the acceptance bar [tasks: 2] (reported)
 Path: objective → component/search
 Now: Add a search index (reported, unverified)
-Remaining: none recorded — this does not mean nothing else remains.
+Remaining:
+- [objective] Deploy the site
 Map:
   - Search — Index published pages [tasks: 1]
   - Publishing — Build and deploy the site
 Constraints:
 - Search must work without sending queries to a third-party service
-Preferences:
-- Keep the site usable offline (reported)
 Decisions:
 - Build the search index at publish time
-Facts: 12 recorded, none linked to the current path (graph_query with node_type=fact lists them).
 Experience (rules distilled from earlier prediction errors; conditional and revisable, not a rule for this case):
 - [better] use the incremental build (repo; when only a few source files changed): run the incremental build before a full rebuild — 2 observation(s) (pre_…, pre_…), observed [for component/search]
-Before continuing: does the work in hand still serve the objective?
-Why this check — a recorded prediction error puts the acceptance items in question:
-- [outcome/worse] offline search (repo; revisit: acceptance): expected results offline — actually the index required a network request
-Compare the objective, the current position, and the other unfinished parts
-(if the block names none, they are unrecorded — not absent), then decide to continue, change, or hold.
-Refining the objective or the approach is allowed, and earlier decisions can be re-examined;
-this is a check, not a gate.
 Prediction errors: 12 recorded (graph_query errors=true).
-Labels say how each item was recorded, not that its content was re-checked; an unmarked item cites a file, command or url. (reported, unverified) was said, not checked: check one when a detail matters, then record the correction with evidence.
 ```
 
-The block gives the next session context without reproducing the whole ledger.
-`Objective` describes the root. `Path` follows the `serves` chain leading to
-`task/current`, which is shown separately under `Now`. If `task/current` is
-absent, `Now` says `not recorded` rather than showing the newest task.
-`Remaining` summarizes other tasks and recorded unmet acceptance items. The
-map keeps more detail on the current path and condenses off-path descendants
-to names.
+and the tab draws the tree. From then on the agent updates the position as the work moves; you do not re-state the objective each session.
 
-Each section has its own budget. Constraints, risks and preferences are
-listed separately. Decisions linked to the current path come first, then other
-decisions by recency. Facts appear only when a `node` edge links them to the
-current path (nearest first, then recency). A fact with no
-link is not replaced by an unrelated sample: the block says how many are
-recorded and how to query them. The error log is an index — one line with the
-count — while the distilled rules stay in `Experience` and the one-shot check
-keeps its reason. `contextLimit` bounds the map rows. `recallLimit` caps
-constraints, risks, preferences and decisions per section; linked facts and
-experience rules have separate limits.
+If nothing appears:
 
-When an error carries `revisit`, the block adds one non-binding request to look
-up from the work in hand. The trigger is the recorded **impact**, not the error's
-kind or size: a `scope` or `estimate` miss that changes nothing about the
-objective is a calibration record and does not ask for the check, while a
-`belief` that overturns an assumption or an `outcome` that shows an acceptance
-item cannot be met can. The request carries the triggering error's subject and
-its predicted/observed difference, because the trigger is independent of the
-error section — the log is one line, and the reader should not have to guess
-which record asked.
+1. Is the plugin enabled in **Plugins**?
+2. Is the session in the repository? The graph is per project root — the nearest ancestor with `.git`.
+3. Did the write have evidence? A write without evidence (a file, a command, a url, or the human's words) is refused by design.
+4. Is runtime context suppressed? The recall block is an optional context section; a profile that turns runtime context off will not show it.
 
-The check is **once per session per error**, not once per process or
-workspace. Another session in the same workspace is still asked, and a restarted
-session is not asked again for an error it already saw; the receipt is kept in
-`.dsh/cognitive-model/recall.json`. It is a check, not a gate, and an agreed
-change of objective is not drift.
+## How the agent uses it
 
-The block is registered as optional (`required: false`), so it follows the
-deployment's runtime-context switch.
+### What to record
 
-## The Host service
+| When | Write | Why |
+|---|---|---|
+| The work starts, or the objective is agreed | `objective` and `component`s with `serves` | The next session needs the whole picture |
+| A decision is made | `decision` with a `node` edge | The next session should not re-open it |
+| A constraint is found | `constraint` | A bound that must not be crossed |
+| A fact is verified | `fact` with a `node` edge | Only linked facts reach the recall block |
+| The current work moves | `task/current` | The "Now" line |
+| Other work is still open | `task/<key>` | The "Remaining" line |
+| An expectation differs | `errors` with a `direction` and evidence | The one-shot check and the calibration |
+| A rule is distilled | `heuristic` with `errorIds` | Experience, not a one-shot note |
 
-The graph is published to sibling Host plugins as the Cordis service
-`cognitiveGraph`:
+`label` is the line the next reader sees; `value` adds what the reader needs beyond the name. For a task, the value says where the work stands and what is still unconfirmed — not what is finished.
 
-```js
-const model = ctx.get('cognitiveGraph') // undefined when this plugin is absent
-const snapshot = model.snapshot(root)   // { state: 'ready' | 'missing' | 'error', nodes, edges, … }
-const recall = model.recall(root)       // { state, text } — the block a session starts from
+### What not to record
+
+- The work itself — do it.
+- A guess — a guess is refused; evidence is required.
+- The conversation — this is not a transcript.
+
+### A first write
+
+```json
+{
+  "nodes": [
+    { "id": "objective", "type": "objective", "label": "Publish a searchable documentation site", "value": "Offline search is the acceptance bar" },
+    { "id": "component/search", "type": "component", "label": "Search", "value": "Index published pages and answer queries" },
+    { "id": "task/current", "type": "task", "label": "Add a search index", "value": "Build the index at publish time; offline search is unconfirmed" },
+    { "id": "task/deploy", "type": "task", "label": "Deploy the site" }
+  ],
+  "edges": [
+    { "from": "component/search", "type": "serves", "to": "objective" },
+    { "from": "task/current", "type": "serves", "to": "component/search" },
+    { "from": "task/deploy", "type": "serves", "to": "objective" }
+  ],
+  "evidence": [{ "kind": "file", "ref": "README.md" }]
+}
 ```
 
-`snapshot(root)` is synchronous and takes a workspace root. A consumer gets the
-same projection the browser reads (`nodes` with their acceptance items, typed
-`edges`, conflicts, and the two `part_of` inferences) without importing this
-package or folding the event log a second time. `@kioju/dsh-cognitive-dashboard` is the
-first consumer: its objective tree is drawn from this snapshot, so supersession
-and conflict detection keep one implementation.
+The example is deliberately small: one objective, one component, the current task, and one other open task. The evidence must be something the agent actually saw.
 
-`recall(root)` returns the recall block itself as `text`, assembled with this
-plugin's configured budgets. A UI can display the block directly instead of rebuilding it. The read does not
-consume the per-session bird's-eye check — the prompt spends that once per
-reader — so the check is absent from the returned text. Both calls share one
-cached read of the log.
+### The recall block
 
-## Storage
+The block is assembled fresh on every prompt, so it follows the graph instead of a stale summary. It answers the questions a session would otherwise re-derive:
 
-```
-<projectRoot>/.dsh/cognitive-model/graph.json    # the append-only event log
-<projectRoot>/.dsh/cognitive-model/recall.json   # read receipts for the bird's-eye check
-```
+- `Objective` — the root, its task count, and the acceptance still unmet.
+- `Path` — the `serves` chain leading to `task/current`.
+- `Now` — the one current task. A newer task does not take this place; `task/current` does.
+- `Remaining` — the other open tasks. `none recorded` does not mean nothing remains.
+- `Map` — the objective tree, compressed; more detail on the current path.
+- `Constraints` / `Risks` / `Preferences` / `Decisions` / `Facts` — what may be believed and what is settled. A fact appears only when a `node` edge links it to the current path.
+- `Experience` — rules distilled from earlier prediction errors, with their conditions.
+- The one-shot check — a non-binding request to look up, added only when a recorded error puts the objective, an acceptance item, or a priority in question. It is shown once per session per error.
 
-`<projectRoot>` is the nearest ancestor containing `.git`; without one, the
-current working directory — the same definition DSH uses for
-`<projectRoot>/.dsh/skills`.
+### Questions
 
-The graph document holds `events`, `stats`, and `nextSeq`. It has no `nodes`
-array: state is projected, never stored. The document is schema 2; the log is
-capped at 20,000 events and is append-only; the supported reset when it is full
-is deleting the area (the graph is a working memory, not an archive). A refused
-write appends no event; the document records it in `stats.rejections` (the first
-refusal creates the document, because the counter is the durable sign that the
-policy ran).
+- **The objective changed.** Write the same node again with the new value; the earlier value stays in `graph_history`. A change of objective is allowed — it is not drift by itself.
+- **I wrote the same node twice.** The later write replaces the earlier one; `graph_history` keeps both.
+- **A record is wrong.** `graph_retract` with a reason and evidence. Nothing is erased; the retraction supersedes it.
+- **Two records are active on one key.** The projection reports a conflict and leaves the key out of the view. It is returned with every query, not silently resolved.
+- **A fact does not appear in the recall block.** Link it to the current path with a `node` edge when the next session should see it.
+- **The recall block is empty.** Either nothing is recorded, the runtime context is suppressed, or the session is outside the project root.
 
-`recall.json` is bookkeeping, not a ledger: it remembers which session has
-already been shown which bird's-eye check. Deleting it only means one check may
-be shown again; it never affects what the graph believes.
+## The Cognition tab
 
-**Reset is physical deletion:**
+Install `@kioju/dsh-cognitive-dashboard` to see the same graph as a tree, with the current task, the other open work, the findings, and the recall block itself. The dashboard README has the reading guide.
 
-```
-rm -rf <projectRoot>/.dsh/cognitive-model
-```
+## Reference
 
-There is no delete tool. `graph_retract` withdraws an entity from the projected
-graph; it does not erase the event that created it.
+Full behaviour, tools, storage and policy: [docs/REFERENCE.md](docs/REFERENCE.md).
 
-An unreadable document is moved aside as `graph.json.corrupt-<timestamp>` before
-the next write, so a hand-edited ledger stays recoverable.
+### Tools
 
-## Migrating the graph to schema 2
+| Tool | Use |
+|---|---|
+| `graph_write` | Write nodes, edges, or prediction errors, with evidence |
+| `graph_retract` | Withdraw a node or edge with a reason |
+| `graph_query` | Traverse, filter, infer owner or location, or list errors |
+| `graph_history` | Read the event chain behind a node or edge |
 
-Schema 2 gives every prediction error a direction. This is a one-time format
-migration, not a correction: the old errors were negative by construction, so
-they become `worse`. Run it once before enabling this version:
-
-```
-npm run build
-node scripts/migrate-peg.mjs <workspace> --dry-run   # report only
-node scripts/migrate-peg.mjs <workspace>
-```
-
-It writes a timestamped `.bak-…` beside the graph, is idempotent, and leaves the
-rest of the log untouched. A new graph is already schema 2; no migration is
-needed.
-
-## Install
-
-In DSH, open **Plugins**, choose **Add plugin**, and enter
-`@kioju/dsh-cognitive-model`. From a shell the same install is
-`dsh plugin add @kioju/dsh-cognitive-model`. The plugin is enabled when it is added;
-switch it on in **Plugins** if it is not.
-
-The package is its own bundle (`dsh.bundle.patch`), and the shared library
-`@kioju/dsh-cognitive-core` arrives as an ordinary dependency — no checkout, no build
-step, nothing to place beside it.
-
-The other cognitive plugins install the same way: `@kioju/dsh-cognitive-findings` (the
-deferral queue for out-of-scope findings) and `@kioju/dsh-cognitive-dashboard` (the
-**Cognition** tab, which draws its tree from this graph). Each is independent.
-
-## Config
+### Config
 
 ```yaml
 - insert:
@@ -378,34 +199,55 @@ deferral queue for out-of-scope findings) and `@kioju/dsh-cognitive-dashboard` (
         writeScopes: []     # empty = every scope
 ```
 
-## Storage counters
+### Storage
 
-The graph document records these counters:
+```
+<projectRoot>/.dsh/cognitive-model/graph.json    # the append-only event log
+<projectRoot>/.dsh/cognitive-model/recall.json   # read receipts for the bird's-eye check
+```
 
-- `writes` — events appended
-- `retractions` — events that withdraw a record
-- `rejections` — writes refused by policy, validation, or a storage limit
-- `duplicates` — repeated claims with the same evidence; no event is appended.
+`<projectRoot>` is the nearest ancestor containing `.git`; without one, the current working directory — the same definition DSH uses for `<projectRoot>/.dsh/skills`.
 
-Conflicts are derived at projection time and are returned with every query, not
-persisted.
+The graph is a working memory, not an archive: the log is capped at 20,000 events. Reset is physical deletion:
 
-## Tests
+```
+rm -rf <projectRoot>/.dsh/cognitive-model
+```
+
+There is no delete tool. `graph_retract` withdraws a node from the projected graph; it does not erase the event that created it.
+
+### Upgrade
+
+Schema 2 gives every prediction error a direction. If the workspace has a schema-1 graph, run the one-time migration before enabling this version:
+
+```
+npm run build
+node scripts/migrate-peg.mjs <workspace> --dry-run   # report only
+node scripts/migrate-peg.mjs <workspace>
+```
+
+It writes a timestamped `.bak-…` beside the graph, is idempotent, and leaves the rest of the log untouched. A new graph is already schema 2.
+
+### Test
 
 ```
 npm test                    # builds first (pretest), then runs the suite once
 node scripts/run-tests.mjs  # in-process runner for a sandbox that denies the child spawn
 ```
 
-The suite covers the projection rules (supersession, invalidation, valid time,
-conflicts), the two inferences and the traversal, the recall block and the
-signed prediction-error policy (including the impact-based bird's-eye check, its
-per-session receipts, its reason line, and a scope miss that stays a calibration
-record), the experience rules (a heuristic distilled from errors, its fields and
-policy, the current-path-first recall section, its budget, and its retraction),
-the schema-2 migration, the write policy, the edge vocabulary, and the four
-tools end to end against a temporary workspace.
+## The family
 
-## Licence
+`dsh-cognitive-*` keeps the material for the next decision outside the conversation: the objective and how the work decomposes, what has been decided and constrained, what is still open, and what was noticed but deferred.
+
+| Package | Role | If it is missing |
+|---|---|---|
+| `@kioju/dsh-cognitive-model` | The graph and the recall block | No tree and no recall block; findings still work |
+| `@kioju/dsh-cognitive-dashboard` | The Cognition tab | The agent still records; you have no view |
+| `@kioju/dsh-cognitive-findings` | The deferral queue | Out-of-scope discoveries have nowhere durable to go |
+| `@kioju/dsh-cognitive-core` | Shared library | Installed automatically |
+
+Each plugin is independent. Install model + dashboard for the full view; add findings for the deferral loop.
+
+## License
 
 MIT.
