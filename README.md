@@ -3,11 +3,9 @@
 The cognitive model and the world model as **one graph**, for DSH agents — and
 the recall block a new session starts from.
 
-The memory layer keeps claims as flat records with string references
-(`serves: 'component/memory'`). This layer keeps the same material as nodes and
-typed edges, so a reference is something a reader can walk, an owner or a
-location can be *derived* through `part_of` instead of restated, and the recall
-that used to be assembled from the flat ledger is assembled from the graph.
+Nodes and typed edges represent objectives, tasks, claims and world entities.
+Readers can follow relationships in the graph or infer ownership and location
+through `part_of`.
 
 State is not stored as truth. The durable document holds an append-only **event
 log**; the graph is projected from it on every read. That is what makes a
@@ -15,10 +13,8 @@ replacement, a withdrawal, and a valid-time window apply before anything is
 answered — and what makes an unresolved conflict visible instead of silently
 resolved.
 
-It replaced `dsh-cognitive-memory` (D99 in the relay): the epistemic vocabulary
-(`constraint` / `risk` / `fact` / `preference`) and the prediction-error records
-are what the memory ledger carried, and the recall block is projected from them.
-The memory ledger is still read by the migration script, never at runtime.
+If you used `dsh-cognitive-memory`, you can [migrate its ledger](#migrating-a-memory-ledger).
+Normal operation does not read the legacy ledger.
 
 ## What it is not
 
@@ -49,13 +45,12 @@ structure), `constraint` / `risk` / `fact` / `preference` (the epistemic record)
 `heuristic` (a conditional rule distilled from prediction errors), and `entity`
 (the world). A finding is not a node: it is a deferral queue item in the
 findings ledger, whose `node` field points back at the objective or component
-it belongs to (D110).
+it belongs to.
 
-The epistemic nodes are where the memory ledger's `kind` went. A constraint is a
-bound on the work; a risk is an unresolved danger; a fact is a claim about the
-repository, with the claim in `value`; a preference is how the human wants
-things done. They are nodes, not attributes, so a reader can query them and the
-recall can group them without a second store.
+A constraint is a bound on the work; a risk is an unresolved danger; a fact is
+a claim about the repository, stored in `value`; a preference is how the human
+wants things done. These are nodes, not attributes, so readers can query them
+and the recall block can group them without a second store.
 
 A **prediction error** — an expectation that differed from what happened, better
 or worse — is *not* a node: it has no place in the structure and no edge to
@@ -195,9 +190,8 @@ The predicate algebra is the whole query language:
 { type: 'true' } | { type: 'false' }
 ```
 
-`mode` is `include` (default) or `exclude`. This replaces the 50 command variants
-(`WhatIsInsideUnionOwnedByNotPartOf`, …) the original grew: every one of them is
-an `And`/`Or`/`Not` tree over these leaves.
+`mode` is `include` (default) or `exclude`. Use `and`, `or`, and `not` to
+combine predicates.
 
 Traversal returns every `via` edge between reached nodes (the induced
 subgraph), not only the BFS tree, and reports a cycle only when the walk
@@ -212,30 +206,30 @@ current.
 
 ## The recall block
 
-A short instruction, and a bounded block assembled from the projection on every
-step:
+The plugin provides a short instruction and assembles a bounded recall block
+from the projection on each step. Here is an example for a documentation site:
 
 ```
 Working memory for this workspace, projected from the event log — build on it instead of re-deriving it:
-Objective: cognitive-agent を DSH プラグインへ移植する [tasks: 1] (reported)
-Path: objective → component/graph
-Now: component/graph — ダッシュボードにグラフを出す
+Objective: Publish a searchable documentation site [tasks: 1] (reported)
+Path: objective → component/search
+Now: Add a search index (reported, unverified)
 Remaining: none recorded — this does not mean nothing else remains.
 Map:
-  - component/graph — イベントログから投影されるグラフ [tasks: 1] (verification)
-  - component/dashboard — グラフを描画する
+  - Search — Index published pages [tasks: 1]
+  - Publishing — Build and deploy the site
 Constraints:
-- never commit credentials: use env vars
+- Search must work without sending queries to a third-party service
 Preferences:
-- language: reply in Japanese (reported)
+- Keep the site usable offline (reported)
 Decisions:
-- 投影は model が持ち、描画は dashboard が持つ: …
+- Build the search index at publish time
 Facts: 12 recorded, none linked to the current path (graph_query with node_type=fact lists them).
 Experience (rules distilled from earlier prediction errors; conditional and revisable, not a rule for this case):
-- [better] use the incremental build (repo; when only a few source files changed): run the incremental build before a full rebuild — 2 observations (pre_…, pre_…), observed [for component/verification]
+- [better] use the incremental build (repo; when only a few source files changed): run the incremental build before a full rebuild — 2 observation(s) (pre_…, pre_…), observed [for component/search]
 Before continuing: does the work in hand still serve the objective?
 Why this check — a recorded prediction error puts the acceptance items in question:
-- [outcome] acceptance check (repo; revisit: acceptance): expected … — actually …
+- [outcome/worse] offline search (repo; revisit: acceptance): expected results offline — actually the index required a network request
 Compare the objective, the current position, and the other unfinished parts
 (if the block names none, they are unrecorded — not absent), then decide to continue, change, or hold.
 Refining the objective or the approach is allowed, and earlier decisions can be re-examined;
@@ -244,24 +238,24 @@ Prediction errors: 12 recorded (graph_query errors=true).
 Labels say how each item was recorded, not that its content was re-checked; an unmarked item cites a file, command or url. (reported, unverified) was said, not checked: check one when a detail matters, then record the correction with evidence.
 ```
 
-The block is the handoff for the next decision, not a reduced ledger (D109).
-The objective is the root in full; the path is the `serves` chain from
-`task/current`, and the position is `task/current` itself (`Now: not recorded.`
-when it is absent — the newest task is not promoted to the position).
-`Remaining` carries the other tasks and every recorded unmet acceptance item.
-The map keeps every branch, but only the current path keeps a description: an
-off-path branch lists its children as names, because the point is to remember
-that the choice exists, not to re-read it.
+The block gives the next session context without reproducing the whole ledger.
+`Objective` describes the root. `Path` follows the `serves` chain leading to
+`task/current`, which is shown separately under `Now`. If `task/current` is
+absent, `Now` says `not recorded` rather than showing the newest task.
+`Remaining` summarizes other tasks and recorded unmet acceptance items. The
+map keeps more detail on the current path and condenses off-path descendants
+to names.
 
-Each frame has its own budget, so none crowds another: constraints and risks
-are always shown, preferences are shown because they shape behavior, decisions
-are the current path first and then recency, and facts only when a `node` edge
-links them to the current path (nearest first, then recency). A fact with no
+Each section has its own budget. Constraints, risks and preferences are
+listed separately. Decisions linked to the current path come first, then other
+decisions by recency. Facts appear only when a `node` edge links them to the
+current path (nearest first, then recency). A fact with no
 link is not replaced by an unrelated sample: the block says how many are
 recorded and how to query them. The error log is an index — one line with the
 count — while the distilled rules stay in `Experience` and the one-shot check
-keeps its reason. `contextLimit` bounds the map rows and `recallLimit` the
-settled sections.
+keeps its reason. `contextLimit` bounds the map rows. `recallLimit` caps
+constraints, risks, preferences and decisions per section; linked facts and
+experience rules have separate limits.
 
 When an error carries `revisit`, the block adds one non-binding request to look
 up from the work in hand. The trigger is the recorded **impact**, not the error's
@@ -301,8 +295,7 @@ first consumer: its objective tree is drawn from this snapshot, so supersession
 and conflict detection keep one implementation.
 
 `recall(root)` returns the recall block itself as `text`, assembled with this
-plugin's configured budgets. A UI shows the block a session actually starts
-from instead of redrawing the material behind it (D108). The read does not
+plugin's configured budgets. A UI can display the block directly instead of rebuilding it. The read does not
 consume the per-session bird's-eye check — the prompt spends that once per
 reader — so the check is absent from the returned text. Both calls share one
 cached read of the log.
@@ -398,25 +391,21 @@ needed.
       name: 'dsh-cognitive-model'
       config:
         contextLimit: 12    # objective-tree rows shown by the recall block
-        recallLimit: 12     # facts shown by the recall block
+        recallLimit: 12     # per-section cap for constraints, risks, preferences and decisions
         queryLimit: 50      # upper bound on one graph_query result
         maxDepth: 6         # traversal depth cap, whatever the caller asks for
         writeTypes: []      # empty = every node type
         writeScopes: []     # empty = every scope
 ```
 
-## Measurements
+## Storage counters
 
-The document carries its own counters, because the phase is judged from the
-artifact rather than from recollection:
+The graph document records these counters:
 
 - `writes` — events appended
-- `retractions` — the subset that withdrew something
-- `rejections` — writes the tool refused (policy, validation, or a cap). Zero
-  would mean the policy is not doing anything; a refusal appends no event, so
-  this counter is the durable sign that it ran.
-- `duplicates` — the same claim, with the same evidence, written twice; nothing
-  was appended.
+- `retractions` — events that withdraw a record
+- `rejections` — writes refused by policy, validation, or a storage limit
+- `duplicates` — repeated claims with the same evidence; no event is appended.
 
 Conflicts are derived at projection time and are returned with every query, not
 persisted.
@@ -428,7 +417,7 @@ npm test                    # builds first (pretest), then runs the suite once
 node scripts/run-tests.mjs  # in-process runner for a sandbox that denies the child spawn
 ```
 
-79 cases: the projection rules (supersession, invalidation, valid time,
+The suite covers the projection rules (supersession, invalidation, valid time,
 conflicts), the two inferences and the traversal, the recall block and the
 signed prediction-error policy (including the impact-based bird's-eye check, its
 per-session receipts, its reason line, and a scope miss that stays a calibration
