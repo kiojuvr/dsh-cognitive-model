@@ -6,7 +6,7 @@
  * having been told the answer, so the read side carries the traversal and the
  * two inferences rather than making the caller spell out every hop.
  */
-import { parseEvidence, type Evidence, type FactSource, type Milestone } from 'dsh-cognitive-core'
+import { parseEvidence, type Evidence, type FactSource, type Milestone } from '@kioju/dsh-cognitive-core'
 import { sessionIdOf, type ContentBlock, type Context, type ToolRunContext } from '../cordis.js'
 import {
   EDGE_TYPES,
@@ -48,7 +48,7 @@ import {
   type GraphView,
 } from './projection.js'
 import { GraphService, type EdgeInput, type NodeInput } from './service.js'
-import type { DirectoryResolver } from 'dsh-cognitive-core'
+import type { DirectoryResolver } from '@kioju/dsh-cognitive-core'
 
 const MAX_QUERY_LIMIT = 200
 const MAX_HISTORY_LIMIT = 100

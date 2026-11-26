@@ -16,7 +16,7 @@
  * and leaves that key out of the view, so a silent guess cannot poison a later
  * read.
  */
-import type { Confidence, Evidence, FactSource, Milestone } from 'dsh-cognitive-core'
+import type { Confidence, Evidence, FactSource, Milestone } from '@kioju/dsh-cognitive-core'
 import { type GraphEdge, type GraphNode, type NodeType } from './schema.js'
 import { type GraphEvent, type NodePayload, projectionKeyOf } from './events.js'
 import type { PredictionErrorDirection, PredictionErrorKind, RevisitTarget } from './prediction.js'

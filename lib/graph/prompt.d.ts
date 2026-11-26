@@ -13,7 +13,7 @@
  * is one block and one implementation of supersession behind it.
  */
 import { type Context } from '../cordis.js';
-import type { DirectoryResolver } from 'dsh-cognitive-core';
+import type { DirectoryResolver } from '@kioju/dsh-cognitive-core';
 import { type GraphView } from './projection.js';
 import { currentPath } from './recall.js';
 import type { GraphService } from './service.js';

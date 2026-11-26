@@ -10,7 +10,7 @@
  * it `supersedes` (an update) or `invalidates` (a withdrawal). A valid-time
  * window can also gate an event without touching it.
  */
-import type { Evidence, FactSource, Milestone } from 'dsh-cognitive-core'
+import type { Evidence, FactSource, Milestone } from '@kioju/dsh-cognitive-core'
 import { type EdgeType, type NodeType, SCHEMA_VERSION, isFunctional } from './schema.js'
 import {
   isPredictionErrorDirection,

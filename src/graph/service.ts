@@ -22,7 +22,7 @@ import {
   type Milestone,
   type TrustMatrix,
   type WritePolicyConfig,
-} from 'dsh-cognitive-core'
+} from '@kioju/dsh-cognitive-core'
 import {
   DEFAULT_MAX_DEPTH,
   DEFAULT_QUERY_LIMIT,

@@ -13,9 +13,6 @@ replacement, a withdrawal, and a valid-time window apply before anything is
 answered — and what makes an unresolved conflict visible instead of silently
 resolved.
 
-If you used `dsh-cognitive-memory`, you can [migrate its ledger](#migrating-a-memory-ledger).
-Normal operation does not read the legacy ledger.
-
 ## What it is not
 
 - **Not a gate.** No tool blocks work, and the graph never refuses to let you
@@ -290,7 +287,7 @@ const recall = model.recall(root)       // { state, text } — the block a sessi
 `snapshot(root)` is synchronous and takes a workspace root. A consumer gets the
 same projection the browser reads (`nodes` with their acceptance items, typed
 `edges`, conflicts, and the two `part_of` inferences) without importing this
-package or folding the event log a second time. `dsh-cognitive-dashboard` is the
+package or folding the event log a second time. `@kioju/dsh-cognitive-dashboard` is the
 first consumer: its objective tree is drawn from this snapshot, so supersession
 and conflict detection keep one implementation.
 
@@ -335,25 +332,6 @@ graph; it does not erase the event that created it.
 An unreadable document is moved aside as `graph.json.corrupt-<timestamp>` before
 the next write, so a hand-edited ledger stays recoverable.
 
-## Migrating a memory ledger
-
-When the graph takes over the recall from `dsh-cognitive-memory`, the ledger's
-active facts, their relations, and its prediction errors can be copied in:
-
-```
-npm run build
-node scripts/import-memory.mjs <workspace> --dry-run   # report only
-node scripts/import-memory.mjs <workspace>
-```
-
-The import preserves each fact's own evidence and source — it does not upgrade
-trust, and a fact today's policy would refuse is reported, not forced in. A node
-the graph already knows and that is newer than the fact is kept, so the import is
-safe to run again. The memory ledger is left untouched; deleting
-`.dsh/cognitive-memory` afterwards is the point of no return, not a requirement.
-An imported error from the old ledger becomes `direction: worse`; the ledger
-predates the signed record.
-
 ## Migrating the graph to schema 2
 
 Schema 2 gives every prediction error a direction. This is a one-time format
@@ -372,23 +350,25 @@ needed.
 
 ## Install
 
-1. Put the shared library in a sibling checkout named `dsh-cognitive-core`. It
-   ships its built `lib/`, so it needs no build step of its own, and it is never
-   added to DSH directly.
-2. In this directory, run `npm install`, then `npm run build`.
-3. Add this directory to DSH: **Plugins > Add plugin**, or
-   `dsh plugin --profile <profile> add <absolute path>` from a shell. The
-   installer writes the `link:` dependency and the bundle entry into the
-   profile's `package.json`; do not edit it by hand.
-4. The plugin is enabled when it is added. If it is not, enable it in
-   **Plugins**.
+In DSH, open **Plugins**, choose **Add plugin**, and enter
+`@kioju/dsh-cognitive-model`. From a shell the same install is
+`dsh plugin add @kioju/dsh-cognitive-model`. The plugin is enabled when it is added;
+switch it on in **Plugins** if it is not.
+
+The package is its own bundle (`dsh.bundle.patch`), and the shared library
+`@kioju/dsh-cognitive-core` arrives as an ordinary dependency — no checkout, no build
+step, nothing to place beside it.
+
+The other cognitive plugins install the same way: `@kioju/dsh-cognitive-findings` (the
+deferral queue for out-of-scope findings) and `@kioju/dsh-cognitive-dashboard` (the
+**Cognition** tab, which draws its tree from this graph). Each is independent.
 
 ## Config
 
 ```yaml
 - insert:
     - id: cognitive-model
-      name: 'dsh-cognitive-model'
+      name: '@kioju/dsh-cognitive-model'
       config:
         contextLimit: 12    # objective-tree rows shown by the recall block
         recallLimit: 12     # per-section cap for constraints, risks, preferences and decisions
@@ -423,10 +403,8 @@ signed prediction-error policy (including the impact-based bird's-eye check, its
 per-session receipts, its reason line, and a scope miss that stays a calibration
 record), the experience rules (a heuristic distilled from errors, its fields and
 policy, the current-path-first recall section, its budget, and its retraction),
-the schema-2 migration, the memory-ledger import (including the component
-mapping, the old-ledger `worse` default, and a refused fact that must not drop
-the rest), the write policy and the edge vocabulary, and the four tools end to
-end against a temporary workspace.
+the schema-2 migration, the write policy, the edge vocabulary, and the four
+tools end to end against a temporary workspace.
 
 ## Licence
 

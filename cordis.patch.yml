@@ -8,7 +8,7 @@
 #   - the cognitive model: objective / component / task / finding / decision
 #     nodes joined by serves / requires / verifies / node edges
 #   - the epistemic record: constraint / risk / fact / preference nodes — what
-#     may be believed about the work, where the memory ledger's kinds went
+#     may be believed about the work
 #   - the world model: entity nodes joined by part_of / owned_by / located_in
 #
 # A prediction error (an expectation that lost to reality) is an event record,
@@ -29,7 +29,7 @@
 
 - insert:
     - id: cognitive-model
-      name: 'dsh-cognitive-model'
+      name: '@kioju/dsh-cognitive-model'
       config:
         # How many objective-tree rows the recall block shows. The tree and the
         # facts have separate budgets so a deep tree cannot push the facts out.

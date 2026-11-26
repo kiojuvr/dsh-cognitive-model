@@ -2,17 +2,13 @@
  * The graph as the browser can read it.
  *
  * The Host publishes one session projection (`cognitiveGraph`) whose wire view
- * is this snapshot. The projection stays here rather than in the UI plugin for
- * the same reason the memory ledger does: there is one implementation of
- * supersession, invalidation, valid time and conflict detection, and a reader
- * cannot disagree with it.
+ * is this snapshot. Keeping the projection here gives the tools and UI the
+ * same rules for supersession, invalidation, valid time and conflict detection.
  *
  * The snapshot is deliberately flat and JSON-safe. It carries no score and no
  * ranking: it reports the nodes, the typed edges, the unresolved conflicts, and
  * the two inferences (owner, location) the graph exists to make. Sizing a node
- * by "investment" is the dashboard's existing convention for the memory-derived
- * tree, and that is exactly the kind of derived number this snapshot does not
- * add.
+ * by "investment" is the dashboard's responsibility.
  *
  * The recall block is the second payload of the same read (D108). It is text,
  * not structure, and it is what a session actually starts from; a reader that
@@ -20,7 +16,7 @@
  * the material behind it.
  */
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { findProjectRoot, workspaceFile } from 'dsh-cognitive-core'
+import { findProjectRoot, workspaceFile } from '@kioju/dsh-cognitive-core'
 import { isGraphDocument, schemaProblem, type GraphDocument } from './events.js'
 import { milestoneProgress, projectEvents, type GraphView } from './projection.js'
 import { resolveLocation, resolveOwner } from './query.js'

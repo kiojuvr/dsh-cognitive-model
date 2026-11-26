@@ -4,15 +4,14 @@
  * A node is a claim about the workspace; a prediction error is the record of a
  * claim (or an expectation) differing from reality. The difference is signed:
  * the outcome can be better or worse than expected, and both are material for
- * the next decision. The memory ledger already corrected its facts with
- * evidence, but the correction was silent: the next session saw the new value
- * and not what it cost. This record makes the difference visible and recallable.
+ * the next decision. Recording the difference makes it available to later
+ * sessions rather than leaving them with only the updated claim.
  *
  * It is an event, not a node: it has no place in the structure and no edge to
  * anything, and it is never superseded — a correction is a new record, so the
  * expectation that differed stays readable.
  */
-import type { Evidence } from 'dsh-cognitive-core';
+import type { Evidence } from '@kioju/dsh-cognitive-core';
 export declare const PREDICTION_ERROR_KINDS: readonly ["belief", "outcome", "estimate", "scope"];
 export type PredictionErrorKind = (typeof PREDICTION_ERROR_KINDS)[number];
 export declare const PREDICTION_ERROR_KIND_HINT: Record<PredictionErrorKind, string>;

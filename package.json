@@ -1,5 +1,5 @@
 {
-  "name": "dsh-cognitive-model",
+  "name": "@kioju/dsh-cognitive-model",
   "version": "0.8.0",
   "description": "A workspace-scoped graph of the cognitive model, the epistemic record and the world model, projected from an append-only event log, with the recall block a session starts from.",
   "type": "module",
@@ -29,12 +29,12 @@
     "dsh": ">=0.2.2-rc.3 <0.3.0"
   },
   "scripts": {
+    "prepack": "npm run build",
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
     "pretest": "npm run build",
     "test": "node --test",
-    "test:sandbox": "node scripts/run-tests.mjs",
-    "import-memory": "node scripts/import-memory.mjs"
+    "test:sandbox": "node scripts/run-tests.mjs"
   },
   "keywords": [
     "deepseek-harness",
@@ -48,8 +48,19 @@
   ],
   "author": "kiojuvr",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kiojuvr/dsh-cognitive-model.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kiojuvr/dsh-cognitive-model/issues"
+  },
+  "homepage": "https://github.com/kiojuvr/dsh-cognitive-model#readme",
   "dependencies": {
-    "dsh-cognitive-core": "file:../dsh-cognitive-core"
+    "@kioju/dsh-cognitive-core": "^0.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

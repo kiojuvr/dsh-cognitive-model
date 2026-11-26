@@ -1,22 +1,16 @@
 /**
  * dsh-cognitive-model — the cognitive model and the world model as one graph.
  *
- * The memory ledger keeps claims as flat records with string references
- * (`serves: 'component/memory'`). This layer keeps the same material as a
- * graph, so a reference is an edge a reader can walk and an owner or a location
- * can be *derived* through `part_of` instead of restated.
+ * Typed edges connect objectives, tasks, claims and world entities. Ownership
+ * and location can be inferred through `part_of`.
  *
  * The design source is `cognitive-agent`'s `world_model` plus its
  * `state_projection_rules.md`, which is the part the Rust implementation never
  * finished: state is projected from an append-only event log, supersession
  * beats recency, invalidation and valid time gate truth, and an unresolved
  * conflict is surfaced rather than silently resolved.
- *
- * It carries what `dsh-cognitive-memory` carried — the epistemic record as node
- * types, prediction errors as events, and the recall block — so the memory
- * plugin is optional. Neither is a gate.
  */
-import { createDirectoryResolver, type DirectoryResolver } from 'dsh-cognitive-core'
+import { createDirectoryResolver, type DirectoryResolver } from '@kioju/dsh-cognitive-core'
 import type { Context } from './cordis.js'
 import { registerPrompt } from './graph/prompt.js'
 import { DEFAULT_CONFIG, GraphService, type GraphConfig } from './graph/service.js'
@@ -337,15 +331,6 @@ export {
   recallText,
 } from './graph/recall.js'
 export type { FactSection } from './graph/recall.js'
-export {
-  MEMORY_AREA,
-  MEMORY_FILE,
-  PREDICTION_ERROR_FILE,
-  importMemoryLedger,
-  nodeIdOf,
-  slugOf,
-} from './graph/import.js'
-export type { ImportProblem, ImportReport } from './graph/import.js'
 export { migratePegDocument } from './graph/migrate.js'
 export type { PegMigrationResult } from './graph/migrate.js'
 export type { GraphDocument, GraphEvent, GraphOp, GraphStats } from './graph/events.js'

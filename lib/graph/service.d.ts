@@ -1,4 +1,4 @@
-import { type Evidence, type FactSource, type Milestone } from 'dsh-cognitive-core';
+import { type Evidence, type FactSource, type Milestone } from '@kioju/dsh-cognitive-core';
 import { edgeSpec, type EdgeType, type NodeType } from './schema.js';
 import { type PredictionErrorDirection, type PredictionErrorInput } from './prediction.js';
 import { type EdgeRef, type GraphDocument, type GraphOp, type GraphStats } from './events.js';

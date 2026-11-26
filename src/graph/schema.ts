@@ -1,7 +1,7 @@
 /**
  * The graph's vocabulary.
  *
- * Two ontologies share one store, because the question "what is the work for,
+ * Three vocabularies share one store, because the question "what is the work for,
  * and what is true about it" is asked once:
  *
  *   - the cognitive model: objective / component / task / decision
@@ -16,20 +16,19 @@
  * The first group is *structural*: it says how the work is shaped. The second
  * is *epistemic*: it says what may be believed about the work — a bound that
  * must not be crossed, a danger that is still open, a claim about the
- * repository, how the human wants things done. The memory ledger kept those as
- * flat `kind`s; here they are node types, so the same store answers both "what
- * is this part of" and "what is settled". Prediction errors — an expectation
+ * repository, or how the human wants things done. The same graph answers both
+ * "what is this part of" and "what is settled". Prediction errors — an expectation
  * that lost to reality — are not structure and not a claim, so they are an
  * event record, not a node (`events.ts`).
  *
  * The node and edge vocabulary is deliberately closed. `world_model` in
  * `cognitive-agent` carried exactly three relations (`part_of`, `owned_by`,
  * `located_in`) and two state dimensions; the cognitive side adds the four
- * references the memory ledger could only keep as strings (`serves`,
+ * relations (`serves`,
  * `requires`, `verifies`, `node`). Anything richer becomes a node, not a new
  * edge type.
  */
-import type { Confidence, Evidence, FactSource } from 'dsh-cognitive-core'
+import type { Confidence, Evidence, FactSource } from '@kioju/dsh-cognitive-core'
 import type { PredictionErrorDirection } from './prediction.js'
 
 export const SCHEMA_VERSION = 2
@@ -257,7 +256,7 @@ export interface GraphNode {
   errorIds: string[]
   paths: string[]
   docs: string[]
-  milestones: import('dsh-cognitive-core').Milestone[]
+  milestones: import('@kioju/dsh-cognitive-core').Milestone[]
   confidence: Confidence
   source: FactSource
   evidence: Evidence[]

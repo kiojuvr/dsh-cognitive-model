@@ -79,8 +79,6 @@ export type { ChainResult, InferenceSource, LocationResolution, OwnerResolution,
 export { contextText } from './graph/prompt.js';
 export { FACT_ORDER, FACT_SECTION_LABEL, RECALL_DECISION_LIMIT, RECALL_FACT_LIMIT, RECALL_HEURISTIC_LIMIT, RECALL_PREFERENCE_LIMIT, REVISIT_LABEL, birdseyeText, currentPath, errorLine, heuristicLine, recentErrors, recallText, } from './graph/recall.js';
 export type { FactSection } from './graph/recall.js';
-export { MEMORY_AREA, MEMORY_FILE, PREDICTION_ERROR_FILE, importMemoryLedger, nodeIdOf, slugOf, } from './graph/import.js';
-export type { ImportProblem, ImportReport } from './graph/import.js';
 export { migratePegDocument } from './graph/migrate.js';
 export type { PegMigrationResult } from './graph/migrate.js';
 export type { GraphDocument, GraphEvent, GraphOp, GraphStats } from './graph/events.js';
