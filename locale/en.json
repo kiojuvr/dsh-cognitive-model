@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "dsh-cognitive-model",
+    "description": "A graph of the cognitive model and the world model: typed nodes and edges projected from an event log, with supersession, invalidation and conflicts kept visible."
+  }
+}

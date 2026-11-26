@@ -1,0 +1,6 @@
+node_modules/
+*.tgz
+*.log
+
+# Graph and memory written when this repository is itself a working directory.
+.dsh/

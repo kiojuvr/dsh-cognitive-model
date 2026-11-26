@@ -1,0 +1,46 @@
+# dsh-cognitive-model — DSH bundle patch layer
+#
+# Registers the graph layer. It contributes four model tools
+# (graph_write / graph_retract / graph_query / graph_history), a short
+# instruction, and the recall block a new session starts from.
+#
+# The graph holds three vocabularies in one store:
+#   - the cognitive model: objective / component / task / finding / decision
+#     nodes joined by serves / requires / verifies / node edges
+#   - the epistemic record: constraint / risk / fact / preference nodes — what
+#     may be believed about the work, where the memory ledger's kinds went
+#   - the world model: entity nodes joined by part_of / owned_by / located_in
+#
+# A prediction error (an expectation that lost to reality) is an event record,
+# not a node: it has no place in the structure. It is appended once and never
+# superseded, so the expectation that failed stays readable.
+#
+# State is not stored as truth: the graph is projected from an append-only
+# event log, so a supersession, an invalidation, and a valid-time window all
+# apply before anything is read back. An unresolved conflict is surfaced
+# rather than silently resolved.
+#
+# Storage lives beside the workspace, not in the DSH home:
+#   <projectRoot>/.dsh/cognitive-model/graph.json
+#
+# Reset is physical deletion of that directory. There is no delete tool:
+# graph_retract removes an entity from the projected graph, it does not erase
+# the event that created it.
+
+- insert:
+    - id: cognitive-model
+      name: 'dsh-cognitive-model'
+      config:
+        # How many objective-tree rows the recall block shows. The tree and the
+        # facts have separate budgets so a deep tree cannot push the facts out.
+        contextLimit: 12
+        # How many facts (constraints, decisions, risks, ...) the recall block shows.
+        recallLimit: 12
+        # Upper bound on a single graph_query result.
+        queryLimit: 50
+        # Upper bound on traversal depth, whatever the caller asks for.
+        maxDepth: 6
+        # Restrict what may be written durably. Empty means every type/scope.
+        # Example: writeTypes: ['objective', 'component', 'task']
+        writeTypes: []
+        writeScopes: []
