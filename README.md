@@ -67,9 +67,11 @@ dsh plugin add @kioju/dsh-cognitive-dashboard
 
 The graph starts empty. Until something is written, the recall block is empty and the Cognition tab says **No objective is recorded yet**. That is the designed start, not a failure: the plugin does not infer an objective from the conversation.
 
-Record the objective once, in a normal session:
+The objective is your intent, so state it yourself — one sentence is enough:
 
-> Read this repository's README and package.json, then record its purpose in the cognitive graph: the objective as `objective`, the current work as `task/current`, and the other open work as `task/<key>`. Use the files you read as evidence, and tell me in one line what you wrote.
+> The goal of this work is `<one sentence>`. Record it in the cognitive graph as `objective`, the current work as `task/current`, and the other open work as `task/<key>`. Use this message as the evidence for the objective, and read the repository only to fill in components and tasks. Tell me in one line what you wrote.
+
+The plugin does not create or modify `package.json`; it stores the graph in `.dsh/cognitive-model/graph.json`. A package manifest can help the agent find components and tasks, but it does not define the objective. A human statement is evidence too: the objective is recorded as `reported`, not as a verified fact.
 
 After the write, the next prompt carries a block like this (trimmed):
 
