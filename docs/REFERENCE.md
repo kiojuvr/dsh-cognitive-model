@@ -1,5 +1,7 @@
 # dsh-cognitive-model: reference
 
+> 日本語: [REFERENCE.ja.md](REFERENCE.ja.md)
+
 Full behaviour, tools, storage and policy. For the introduction, install and
 first steps, see the [README](../README.md).
 

@@ -1,5 +1,7 @@
 # dsh-cognitive-model
 
+> 日本語: [README.ja.md](README.ja.md)
+
 A workspace-scoped graph that carries **the objective, the current position, and the work still open** across sessions — and the recall block a session starts from. The agent writes it with evidence; the next session reads it before it starts working. The same graph is what the Cognition tab draws.
 
 ## Why this exists
