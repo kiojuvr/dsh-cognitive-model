@@ -1,6 +1,6 @@
 {
   "name": "@kioju/dsh-cognitive-model",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A workspace-scoped graph of the cognitive model, the epistemic record and the world model, projected from an append-only event log, with the recall block a session starts from.",
   "type": "module",
   "main": "lib/index.js",
